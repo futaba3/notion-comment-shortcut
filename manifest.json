@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Notion Comment Cmd+Enter Sender",
+    "version": "1.0.0",
+    "description": "Make Notion comments behave like Slack: Enter for newline, Cmd+Enter for send.",
+    "permissions": [],
+    "content_scripts": [
+      {
+        "matches": ["https://www.notion.so/*"],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ]
+  }
+  
