@@ -78,34 +78,6 @@ function addCaption() {
     });
   }
   
- // --- キャプション追加 ---
-function addCaption() {
-    document.querySelectorAll('[role="dialog"]').forEach((dialog) => {
-      if (!dialog.querySelector('.cmd-enter-caption')) {
-        const caption = document.createElement('div');
-        caption.className = 'cmd-enter-caption';
-        caption.textContent = '⌘ + Enter で送信';
-        Object.assign(caption.style, {
-          fontSize: '12px',
-          color: '#999',
-          marginRight: '18px',
-          textAlign: 'right',
-          position: 'absolute',
-          bottom: '4px',
-          right: '0',
-          width: 'calc(100% - 18px)',
-          userSelect: 'none',
-          opacity: '0',
-          transition: 'opacity 0.25s ease',
-          pointerEvents: 'none',
-        });
-        dialog.style.position = 'relative';
-        dialog.appendChild(caption);
-        console.log("[Notion Cmd+Enter] キャプション追加");
-      }
-    });
-  }
-  
   // --- フォーカス時の表示/非表示 ---
   function setupFocusWatcher() {
     document.querySelectorAll('[role="dialog"] [contenteditable="true"]').forEach((input) => {
