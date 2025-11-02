@@ -10,26 +10,23 @@ function handleKeyDown(e) {
   // コメント欄のtextarea/contenteditableを想定
   if (el && el.isContentEditable && el.closest('[role="dialog"]')) {
     if (isPlainEnter) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation(); // ← これ重要
-        document.execCommand('insertLineBreak');
-        console.log("[Notion Cmd+Enter] 改行しました（強制版）");
-        return;
-      }
-      
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      document.execCommand('insertLineBreak');
+      console.log("[Notion Cmd+Enter] 改行しました（強制版）");
+      return;
+    }
+
     if (isCmdEnter) {
       console.log("[Notion Cmd+Enter] Command+Enter → 送信");
-
-      // コメント欄では Enter 送信をシミュレート
-      // blur() で Notion のコメント送信が走る場合が多い
       el.blur();
 
-      // フォールバック：ボタン探してクリック（念のため）
-      const sendBtn = document.querySelector('button[aria-label="Send"]') || document.querySelector('button[aria-label="コメントを送信"]');
-      if (sendBtn) {
-        sendBtn.click();
-      }
+      // フォールバック：送信ボタン探してクリック
+      const sendBtn =
+        el.closest('[role="dialog"]').querySelector('button[aria-label="Send"]') ||
+        el.closest('[role="dialog"]').querySelector('button[aria-label="コメントを送信"]');
+      if (sendBtn) sendBtn.click();
     }
   }
 }
@@ -44,7 +41,7 @@ function attachHandlers(doc) {
 
 attachHandlers(document);
 
-// iframe対策
+// iframe対応
 new MutationObserver(() => {
   document.querySelectorAll('iframe').forEach((f) => {
     try {
@@ -53,26 +50,58 @@ new MutationObserver(() => {
   });
 }).observe(document.body, { childList: true, subtree: true });
 
-// Slack風キャプション追加
 function addCaption() {
-  document.querySelectorAll('[role="dialog"]').forEach(dialog => {
-    if (!dialog.querySelector('.cmd-enter-caption')) {
-      const caption = document.createElement('div');
-      caption.className = 'cmd-enter-caption';
-      caption.textContent = '⌘ + Enter で送信';
-      caption.style.fontSize = '12px';
-      caption.style.color = '#888';
-      caption.style.marginTop = '4px';
-      caption.style.marginLeft = '4px';
-      caption.style.userSelect = 'none';
-      caption.style.opacity = '0.7';
-      caption.style.transition = 'opacity 0.2s ease';
-      caption.addEventListener('mouseenter', () => caption.style.opacity = '1');
-      caption.addEventListener('mouseleave', () => caption.style.opacity = '0.7');
-      dialog.appendChild(caption);
-      console.log("[Notion Cmd+Enter] キャプション追加");
-    }
+    document.querySelectorAll('[role="dialog"]').forEach((dialog) => {
+      if (!dialog.querySelector('.cmd-enter-caption')) {
+        const caption = document.createElement('div');
+        caption.className = 'cmd-enter-caption';
+        caption.textContent = '⌘ + Enter で送信';
+        Object.assign(caption.style, {
+          fontSize: '12px',
+          color: '#999',
+          marginRight: '18px',
+          textAlign: 'right',
+          position: 'absolute',
+          bottom: '4px',
+          right: '0',
+          width: 'calc(100% - 18px)',
+          userSelect: 'none',
+          opacity: '0', // ← 初期状態は非表示
+          transition: 'opacity 0.25s ease',
+          pointerEvents: 'none',
+        });
+        dialog.style.position = 'relative';
+        dialog.appendChild(caption);
+        console.log("[Notion Cmd+Enter] キャプション追加");
+      }
+    });
+  }
+  
+  // --- フォーカス時の動作 ---
+  function setupFocusWatcher() {
+    document.querySelectorAll('[role="dialog"] [contenteditable="true"]').forEach((input) => {
+      if (input._focusHooked) return;
+      input._focusHooked = true;
+  
+      input.addEventListener('focus', () => {
+        const caption = input.closest('[role="dialog"]')?.querySelector('.cmd-enter-caption');
+        if (caption) caption.style.opacity = '1'; // ← フォーカス時にフェードイン
+        input.style.paddingBottom = '22px'; // ← 余白を確保
+      });
+  
+      input.addEventListener('blur', () => {
+        const caption = input.closest('[role="dialog"]')?.querySelector('.cmd-enter-caption');
+        if (caption) caption.style.opacity = '0'; // ← フェードアウトして非表示
+        input.style.paddingBottom = ''; // ← 元に戻す
+      });
+    });
+  }
+  
+  const observer = new MutationObserver(() => {
+    addCaption();
+    setupFocusWatcher();
   });
-}
-
-new MutationObserver(addCaption).observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  addCaption();
+  setupFocusWatcher();
